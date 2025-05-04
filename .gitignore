@@ -1,0 +1,16 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Virtual environment
+.venv/
+
+# Environment variables file
+.env
+
+# IDE specific files (optional, but often useful)
+.vscode/
+.idea/
+
+# uvicorn logs (if any)
+*.log
