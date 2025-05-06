@@ -14,3 +14,9 @@ __pycache__/
 
 # uvicorn logs (if any)
 *.log
+
+# Node.js dependencies
+node_modules/
+
+# npm logs
+npm-debug.log*
