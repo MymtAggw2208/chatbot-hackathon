@@ -1,12 +1,19 @@
 # app/services/thinking_chat_service.py
+# ChatRequest, ChatResponse, ChatMessage モデルはそのまま使用
 from app.models.chat_models import ChatRequest, ChatResponse, ChatMessage
-from app.services.ai_service import get_ai_response_from_model, build_ai_prompt
+# generate_chat_response 関数をインポート
+from app.services.ai_service import generate_chat_response
+# List 型ヒントはそのまま使用
 from typing import List
 
-# このサービスが担当するAIへの指示を定義
-THINKING_MODE_INSTRUCTION = (
-    "あなたは直接的な答えを教えてはいけません。代わりに、その答えにたどり着くための思考プロセスや、"
-    "どのようなキーワードで検索すれば情報が見つかるかを具体的にステップ形式で教えてください。"
+# このサービスが担当するAIへのシステム指示を定義
+THINKING_MODE_SYSTEM_INSTRUCTION = (
+    "あなたはユーザーからの質問に対し、直接的な答えを教えず、"
+    "その答えにたどり着くための思考プロセスや、効果的な調べ方、検索キーワードなどを、"
+    "具体的かつ分かりやすいステップ形式で回答してください。"
+    "ユーザーの学習を助けることに焦点を当ててください。"
+    # Geminiに指示として認識させるため、ユーザー発話の形式にするのがコツ
+    # モデルによっては 'system' ロールを理解するものもありますが、'user' が最も一般的で互換性が高いです
 )
 
 async def process_thinking_request(request: ChatRequest) -> ChatResponse:
@@ -15,34 +22,28 @@ async def process_thinking_request(request: ChatRequest) -> ChatResponse:
     """
     print("Service: Processing thinking mode request...")
 
-    # 1. AIへのプロンプトを構築
-    # 会話履歴も渡すが、このモードでは過去の質問の「考え方」を聞くケースは少ないかもしれない
-    # 必要に応じて履歴の扱い方は調整
-    prompt = build_ai_prompt(
-        user_question=request.question,
-        mode_instruction=THINKING_MODE_INSTRUCTION,
-        history=request.history # 会話履歴も渡す
-    )
+    try:
+        # AIに渡す会話履歴リストを作成
+        # ★ システム指示を最初のメッセージとして追加 ★
+        history_for_ai: List[ChatMessage] = [
+            ChatMessage(role="user", content=THINKING_MODE_SYSTEM_INSTRUCTION)
+        ] + request.history # 元の履歴リストの後に追加
 
-    # 2. AIサービスを呼び出し
-    ai_raw_response = await get_ai_response_from_model(
-        prompt=prompt,
-        history=request.history # AIモデルがメッセージリスト形式を要求する場合などに必要
-    )
+        # 1. AIサービスを呼び出し
+        # 現在のユーザー質問と、システム指示を含む会話履歴リストを渡す
+        ai_response_text = await generate_chat_response(
+            current_message_content=request.question,
+            history=history_for_ai # システム指示を含む履歴を渡す
+        )
 
-    # 3. AIからの応答を処理（ここでは単純にそのまま返す）
-    # 必要であれば、AI応答の形式をチェックしたり加工したりする
-    processed_response = ai_raw_response
+        # 2. AIからの応答を処理（ここでは単純にそのまま返す）
+        processed_response = ai_response_text
 
-    print("Service: Thinking mode processing complete.")
+        print("Service: Thinking mode processing complete.")
 
-    # 4. レスポンスモデルに格納して返す
-    return ChatResponse(response=processed_response)
+        # 3. レスポンスモデルに格納して返す
+        return ChatResponse(response=processed_response)
 
-# クラスベースにすることも検討可能 (例: 依存性注入などが必要になった場合)
-# class ThinkingChatService:
-#     def __init__(self, ai_client: AICallInterface): # AI連携部分をDIする例
-#         self.ai_client = ai_client
-#
-#     async def process_request(self, request: ChatRequest) -> ChatResponse:
-#         ... self.ai_client を使って AI 呼び出し ...
+    except Exception as e:
+        print(f"Service Error in thinking mode: {e}")
+        raise # API層でキャッチさせるため再Raise

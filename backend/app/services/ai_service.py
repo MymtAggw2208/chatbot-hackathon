@@ -1,87 +1,115 @@
 # app/services/ai_service.py
+import os
+import asyncio
+import google.generativeai as genai
+import google.generativeai.types as genai_types
+# List と Optional は必要。Dict, Any を typing からインポート
+from typing import List, Optional, Dict, Any
+# ChatMessage モデルをインポート
 from app.models.chat_models import ChatMessage
-from typing import List
 
-# ここに実際のAIモデルとの通信処理を書きます
-# (例: OpenAI API, Gemini API, ローカルモデルの呼び出しなど)
+# .env ファイルから環境変数を読み込む (ローカル開発用)
+from dotenv import load_dotenv
+load_dotenv()
 
-async def get_ai_response_from_model(prompt: str, history: List[ChatMessage]) -> str:
+# 環境変数からGemini APIキーを取得
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+# APIキーが設定されているか確認
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable not set.")
+
+# Gemini API を設定
+genai.configure(api_key=API_KEY)
+
+# 使用するモデルを指定
+MODEL_NAME = "gemini-2.0-flash"
+
+# ChatMessage の role ('user', 'assistant') を Gemini API が期待する 'user', 'model' にマッピング
+ROLE_MAPPING = {
+    "user": "user",
+    "assistant": "model", # Gemini API は 'model' ロールを使用します
+}
+
+async def generate_chat_response(
+    current_message_content: str,
+    history: List[ChatMessage]
+) -> str:
     """
-    AIモデルにプロンプトと履歴を送信し、応答を取得する（モック）。
+    Gemini API を使用してチャット応答を生成する。
+    システム指示は history リストの最初のメッセージとして含めることを想定。
+    履歴は辞書形式に変換して渡す。
 
-    実際の実装では、ここにAPIキーの設定、非同期HTTPリクエスト、
-    エラーハンドリングなどのロジックが入ります。
+    Args:
+        current_message_content: ユーザーからの現在のメッセージ本文。
+        history: 過去の会話履歴 (ChatMessage オブジェクトのリスト)。
+                 システム指示を含める場合は、リストの最初の要素として
+                 ChatMessage(role='user', content='指示内容') を含める。
+
+    Returns:
+        AIからの応答本文。
+
+    Raises:
+        Exception: API呼び出し中にエラーが発生した場合。
     """
-    print("--- Calling Mock AI Service ---")
-    print(f"Prompt:\n{prompt}")
-    print(f"History: {history}")
+    print("--- Calling Gemini AI Service ---")
+    print(f"Current Message: {current_message_content[:50]}...")
+    print(f"History Length: {len(history)}")
     print("-----------------------------")
 
-    # !!! 実際のAIモデル呼び出しに置き換える !!!
-    # 例:
-    # import openai
-    # messages = [{"role": msg.role, "content": msg.content} for msg in history]
-    # messages.append({"role": "user", "content": prompt}) # プロンプトを最後のメッセージとして追加
-    # response = await openai.ChatCompletion.acreate(
-    #     model="gpt-4o-mini", # 利用するモデル
-    #     messages=messages
-    # )
-    # return response.choices[0].message.content
-
-    # これはあくまでモックの応答です
-    # プロンプトの内容に応じて、それっぽいダミー応答を返します（非常に単純な例）
-    if "考え方や調べ方を教えて" in prompt:
-        mock_response = (
-            f"（これはモック応答です - 考え方モード）\n\n"
-            f"お尋ねの件について、答えそのものではなく、その考え方や調べ方をご案内します。\n"
-            f"1. 問題の核心を捉えるキーワードを特定します。\n"
-            f"2. 信頼できる情報源（書籍、論文、公式ドキュメントなど）を探します。\n"
-            f"3. 特定したキーワードと情報源を使って調査を行います。\n"
-            f"4. 複数の情報を比較検討し、自分なりの理解を深めます。"
-        )
-    elif "なぜその回答になるのか" in prompt:
-         mock_response = (
-            f"（これはモック応答です - 答え+なぜ？モード）\n\n"
-            f"ご質問の件に対する答えは「モック回答」です。\n\n"
-            f"さて、なぜこの答えが正しいと考えられるか、あなたの推論を聞かせてください。"
-        )
-    else:
-        mock_response = f"（これはモック応答です）\n\n「{prompt[:50]}...」に対する一般的な応答です。"
+    try:
+        # 渡された history リストを Gemini API が受け付ける辞書形式のリストに変換
+        gemini_history: List[Dict[str, Any]] = []
+        for message in history:
+            role = ROLE_MAPPING.get(message.role)
+            if role:
+                 gemini_history.append({
+                     "role": role,
+                     "parts": [{"text": message.content}] # テキストは parts リストの中の辞書に入れる形式
+                 })
+            else:
+                 print(f"Warning: Unknown role in history: {message.role}. Skipping.")
 
 
-    import asyncio
-    await asyncio.sleep(0.1) # API呼び出しの待機を模倣
+        # Gemini モデルインスタンスを取得
+        model = genai.GenerativeModel(MODEL_NAME)
 
-    return mock_response
+        # チャットセッションを開始
+        # 辞書形式のリストを history として渡します。
+        chat_session = model.start_chat(history=gemini_history)
 
-# プロンプトを構築する関数（サービス層から呼び出される）
-def build_ai_prompt(user_question: str, mode_instruction: str, history: List[ChatMessage]) -> str:
-    """
-    AIモデルに送るためのプロンプト文字列を構築する。
-    会話履歴を含めたり、特定の指示（mode_instruction）を追加したりする。
-    """
-    # AIモデルが会話履歴をどのような形式で受け取るかによって、ここは大きく変わります。
-    # 例えば、OpenAIやGeminiのAPIは messages=[...] のリスト形式を直接受け取ることが多いです。
-    # この例では、履歴と現在の質問・指示を全て一つの文字列に詰め込む単純な形式とします。
+        # 現在のユーザーメッセージを送信し、応答を待つ
+        # send_message_async は非同期なので await します
+        response = await chat_session.send_message_async(current_message_content)
 
-    prompt_parts = []
+        # 応答からテキスト部分を抽出して返す
+        if response.text:
+             return response.text
+        elif response.candidates:
+             # text 属性がない場合でも候補があればそれを返すなど、柔軟に対応
+             print(f"Warning: Response.text is empty, checking candidates.")
+             if response.candidates[0].content.parts:
+                 # 応答候補の最初のパートのテキストを返す
+                 if isinstance(response.candidates[0].content.parts[0], genai_types.TextPart):
+                     return response.candidates[0].content.parts[0].text
+                 else:
+                      # テキストパートでない場合（画像など）の考慮
+                      print(f"Warning: First candidate part is not text: {type(response.candidates[0].content.parts[0])}")
+                      return "AIからの応答がテキスト形式ではありませんでした。"
+             else:
+                 return "AIから有効な応答が得られませんでした（候補パートなし）。"
+        else:
+             print(f"Warning: AI response is empty or blocked. Response: {response}")
+             if response.prompt_feedback and response.prompt_feedback.block_reason:
+                  block_reason = response.prompt_feedback.block_reason
+                  print(f"Response was blocked due to: {block_reason}")
+                  if block_reason == genai_types.BlockedReason.SAFETY:
+                      return "不適切な内容のため応答を生成できませんでした。"
+                  else:
+                      return "AIによる応答生成に問題が発生しました（理由不明）。"
+             return "AIからの応答が得られませんでした。"
 
-    # 会話履歴をプロンプトに含める（モデルが履歴対応している場合）
-    # 実際のAPIでは messages=[...] リスト形式で渡すことが多い
-    # if history:
-    #     prompt_parts.append("--- 会話履歴 ---")
-    #     for msg in history:
-    #         prompt_parts.append(f"{msg.role}: {msg.content}")
-    #     prompt_parts.append("--- ここまで履歴 ---")
 
-    # 現在のユーザーの質問
-    prompt_parts.append(f"ユーザーからの質問：『{user_question}』")
-
-    # モードに応じたAIへの指示
-    if mode_instruction:
-        prompt_parts.append(f"指示：{mode_instruction}")
-
-    # 全体を結合してプロンプト文字列とする
-    prompt = "\n".join(prompt_parts)
-
-    return prompt
+    except Exception as e:
+        print(f"An error occurred during AI API call: {e}")
+        raise Exception(f"AIサービスとの通信中にエラーが発生しました: {e}") # API層でキャッチされるように例外を再Raise
