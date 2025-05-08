@@ -40,18 +40,30 @@ pip install -r requirements.txt
 ```
 
 6. (任意) .env ファイルの作成
-環境変数を使う場合は、.env.example などを参考に .env ファイルをローカルに作成します（これはGit管理されない）
+環境変数を使う場合は、.env.example などを参考に .env ファイルをローカルに作成します（これはGit管理されない）<br>
+現時点でGEMINIのAPIキーのみ指定しています
 
 ## ローカル起動手順
 1. 仮想環境有効化<br>
    開発環境構築手順の「仮想環境を有効化」参照
+
 2. backendに移動
 ```
 cd backend
+# requirements.txtに変更がある場合はinstallを実行
+pip install -r requirements.txt
+# 履歴テーブル作成時は以下を実行
+# python create_table.py
 ```
 3. アプリケーション起動
 ```
 uvicorn app.main:app --reload
 # ポート指定する場合
 uvicorn app.main:app --reload --port 8001
+```
+
+4. ブラウザで確認
+```
+# ポート番号は適宜変更してください
+http://localhost:8000/docs
 ```

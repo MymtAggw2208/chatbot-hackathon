@@ -1,9 +1,10 @@
 # app/services/answer_chat_service.py
-# ChatRequest, ChatResponse, ChatMessage モデルはそのまま使用
+from sqlalchemy.orm import Session 
+
+from app.db import crud
+from app.db.models import Message
 from app.models.chat_models import ChatRequest, ChatResponse, ChatMessage
-# generate_chat_response 関数をインポート
 from app.services.ai_service import generate_chat_response
-# List 型ヒントはそのまま使用
 from typing import List
 
 # このサービスが担当するAIへのシステム指示を定義
@@ -15,33 +16,54 @@ ANSWER_AND_WHY_MODE_SYSTEM_INSTRUCTION = (
      # Geminiに指示として認識させるため、ユーザー発話の形式にするのがコツ
 )
 
-async def process_answer_and_why_request(request: ChatRequest) -> ChatResponse:
+async def process_answer_and_why_request(db: Session, request: ChatRequest) -> ChatResponse:
     """
     '答え+なぜ？'モードのチャットリクエストを処理する。
     """
     print("Service: Processing answer and why mode request...")
 
     try:
-        # AIに渡す会話履歴リストを作成
-        # ★ システム指示を最初のメッセージとして追加 ★
-        history_for_ai: List[ChatMessage] = [
-            ChatMessage(role="user", content=ANSWER_AND_WHY_MODE_SYSTEM_INSTRUCTION)
-        ] + request.history # 元の履歴リストの後に追加
+        conversation_id = request.conversation_id
+        current_question_text = request.question
 
-        # 1. AIサービスを呼び出し
-        # 現在のユーザー質問と、システム指示を含む会話履歴リストを渡す
+        # 1. 会話の特定または新規作成
+        if conversation_id is None:
+            # 新しい会話の場合、DBに会話エントリを作成
+            conversation = crud.create_conversation(db)
+            conversation_id = conversation.id
+            print(f"Service: Created new conversation with ID: {conversation_id}")
+        else:
+             # 既存の会話の場合、IDが存在するか確認するなど堅牢化も必要
+             print(f"Service: Using existing conversation with ID: {conversation_id}")
+             # ここで、そのconversation_idが本当に存在するかDBで確認する処理を入れるのが望ましい
+
+        # 2. DBから会話履歴を取得
+        db_messages = crud.get_conversation_history(db, conversation_id)
+
+        # DBから取得した履歴を、AIサービスが期待する ChatMessage のリスト形式に変換
+        history_for_ai: List[ChatMessage] = crud.messages_to_chat_messages(db_messages)
+
+        # システム指示をAIに渡す履歴リストの先頭に追加
+        history_for_ai_with_instruction: List[ChatMessage] = [
+            ChatMessage(role="user", content=ANSWER_AND_WHY_MODE_SYSTEM_INSTRUCTION)
+        ] + history_for_ai
+
+        # 3. AIサービスを呼び出し
+        # 現在のユーザー質問と、システム指示+DB履歴を含む会話履歴リストを渡す
         ai_response_text = await generate_chat_response(
-            current_message_content=request.question,
-            history=history_for_ai # システム指示を含む履歴を渡す
+            current_message_content=current_question_text,
+            history=history_for_ai_with_instruction # システム指示+DB履歴を渡す
         )
 
-        # 2. AIからの応答を処理（ここでは単純にそのまま返す）
-        processed_response = ai_response_text
+        # 4. ユーザーの質問とAIの応答をDBに保存
+        crud.create_message(db, conversation_id, "user", current_question_text)
+        crud.create_message(db, conversation_id, "assistant", ai_response_text) # AIのロールは 'assistant' で保存
 
-        print("Service: Answer and why mode processing complete.")
-
-        # 3. レスポンスモデルに格納して返す
-        return ChatResponse(response=processed_response)
+        # 5. レスポンスモデルに格納して返す
+        return ChatResponse(
+            response=ai_response_text,
+            conversation_id=conversation_id # 新規作成/既存問わず会話IDを返す
+        )
 
     except Exception as e:
         print(f"Service Error in answer and why mode: {e}")

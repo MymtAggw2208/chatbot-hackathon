@@ -1,10 +1,12 @@
 # app/api/chat_routes.py
-from fastapi import APIRouter, Depends, HTTPException, status # status をインポートするとコードが見やすい
-from app.models.chat_models import ChatRequest, ChatResponse # 定義したモデルをインポート
+from fastapi import APIRouter, Depends, HTTPException, status 
+from sqlalchemy.orm import Session
+from app.models.chat_models import ChatRequest, ChatResponse
 # サービス層のモジュールをインポート
 from app.services import thinking_chat_service, answer_chat_service
-# もしサービスがクラスなら、ここでインスタンス化や依存性注入の設定が必要になる
-# 例: thinking_service = thinking_chat_service.ThinkingChatService(...)
+# database.py から get_db 依存性注入ヘルパーをインポート
+from app.db.database import get_db
+
 
 # APIRouter インスタンスを作成
 # このルーター内の全てのエンドポイントは、main.py で設定された prefix (例: /chat) の下に配置されます。
@@ -15,7 +17,7 @@ router = APIRouter()
              status_code=status.HTTP_200_OK, # 成功時のステータスコード
              summary="考え方や調べ方を回答するチャット機能" # 自動生成ドキュメント用
             )
-async def chat_thinking_endpoint(request: ChatRequest):
+async def chat_thinking_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     """
     **考え方や調べ方モード**のチャットリクエストを受け付けます。
 
@@ -24,10 +26,10 @@ async def chat_thinking_endpoint(request: ChatRequest):
 
     AIからの応答として、答えそのものではなく、考え方や調べ方の手順を返します。
     """
-    print(f"API: Received request for /chat/thinking - Question: {request.question[:50]}...")
+    print(f"API: Received request for /chat/thinking - Conversation ID: {request.conversation_id}, Question: {request.question[:50]}...")
     try:
         # Service Layer の関数を呼び出し、実際のビジネスロジックを実行
-        response = await thinking_chat_service.process_thinking_request(request)
+        response = await thinking_chat_service.process_thinking_request(db,request)
 
         # Service Layer から返された結果をそのまま返す
         return response
@@ -46,7 +48,7 @@ async def chat_thinking_endpoint(request: ChatRequest):
              status_code=status.HTTP_200_OK,
              summary="答えを返した上で考え方を問うチャット機能"
             )
-async def chat_answer_and_why_endpoint(request: ChatRequest):
+async def chat_answer_and_why_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     """
     **答え+なぜ？モード**のチャットリクエストを受け付けます。
 
@@ -58,7 +60,7 @@ async def chat_answer_and_why_endpoint(request: ChatRequest):
     print(f"API: Received request for /chat/answer - Question: {request.question[:50]}...")
     try:
         # Service Layer の関数を呼び出し、実際のビジネスロジックを実行
-        response = await answer_chat_service.process_answer_and_why_request(request)
+        response = await answer_chat_service.process_answer_and_why_request(db, request)
 
         # Service Layer から返された結果をそのまま返す
         return response
