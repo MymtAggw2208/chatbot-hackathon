@@ -23,6 +23,7 @@ async def chat_thinking_endpoint(request: ChatRequest, db: Session = Depends(get
 
     - **question**: ユーザーからの現在の質問
     - **history**: 過去の会話履歴 (ChatMessageオブジェクトのリスト)
+    - **conversation_id**: 会話の識別子 (新規会話の場合はNone)
 
     AIからの応答として、答えそのものではなく、考え方や調べ方の手順を返します。
     """
@@ -54,6 +55,7 @@ async def chat_answer_and_why_endpoint(request: ChatRequest, db: Session = Depen
 
     - **question**: ユーザーからの現在の質問
     - **history**: 過去の会話履歴 (ChatMessageオブジェクトのリスト)
+    - **conversation_id**: 会話の識別子 (新規会話の場合はNone)
 
     AIからの応答として、まず質問への答えを返し、その後に答えの根拠や理由をユーザーに尋ねる質問を続けます。
     """
