@@ -10,10 +10,18 @@ import { Lightbulb, MessageCircle, Send, ThumbsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function LearningCompanion() {
-  const [messages, setMessages] = useState([
+  const [hintMessages, setHintMessages] = useState([
     {
-      id: "welcome",
-      content: "こんにちは！何か質問があれば、聞いてね！",
+      id: "welcome-hint",
+      content: "こんにちは！ヒントが欲しければ、何でも聞いてね！",
+      sender: "ai",
+      type: "feedback",
+    },
+  ])
+  const [explanationMessages, setExplanationMessages] = useState([
+    {
+      id: "welcome-expl",
+      content: "こんにちは！説明が必要なら、質問してね！",
       sender: "ai",
       type: "feedback",
     },
@@ -25,7 +33,7 @@ export function LearningCompanion() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [hintMessages, explanationMessages, mode])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -38,53 +46,39 @@ export function LearningCompanion() {
       id: Date.now().toString(),
       content: input,
       sender: "user",
-      type: "question",
+      type: mode,
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const isHint = mode === "hint"
+    const setTargetMessages = isHint ? setHintMessages : setExplanationMessages
+    const getTargetMessages = isHint ? hintMessages : explanationMessages
+    const endpoint = isHint ? "/chat/thinking" : "/chat/answer"
+
+    setTargetMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsThinking(true)
 
-    // Simulate AI thinking time
-    setTimeout(() => {
-      let response
-
-      if (mode === "hint") {
-        response = {
-          id: (Date.now() + 1).toString(),
-          content: generateHint(input),
-          sender: "ai",
-          type: "hint",
-        }
-      } else {
-        response = {
-          id: (Date.now() + 1).toString(),
-          content: generateExplanationPrompt(input),
-          sender: "ai",
-          type: "explanation",
-        }
+    try {
+      const res = await fetch(`http://localhost:8000${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question: input, history: [] }),
+      })
+      const data = await res.json()
+      const aiMessage = {
+        id: Date.now().toString(),
+        content: data.response,
+        sender: "ai",
+        type: "feedback",
       }
-
-      setMessages((prev) => [...prev, response])
+      setTargetMessages((prev) => [...prev, aiMessage])
+    } catch (error) {
+      console.error("Error fetching AI response:", error)
+    } finally {
       setIsThinking(false)
-    }, 1500)
-  }
-
-  const generateHint = (question) => {
-    // This would be replaced with actual AI logic
-    if (question.includes("計算") || question.includes("数学")) {
-      return "その計算問題を解くには、まず何が分かっていて、何を求めればいいのかを整理してみよう。どんな公式が使えそうかな？"
-    } else if (question.includes("歴史") || question.includes("いつ")) {
-      return "歴史の出来事を考えるときは、その時代の背景や前後の出来事を思い出すと良いよ。何か関連する出来事を知っているかな？"
-    } else if (question.includes("理科") || question.includes("なぜ")) {
-      return "その現象の原因を考えるときは、似たような例を思い出してみよう。どんな法則が関係していると思う？"
-    } else {
-      return "その問題について、まず知っていることをノートに書き出してみよう。それから、どうやって解決できるか考えてみよう。何か思いついたことはある？"
     }
-  }
-
-  const generateExplanationPrompt = (question) => {
-    return `「${question}」について、あなたはどう考えますか？あなたの言葉で説明してみてください。`
   }
 
   const handleKeyDown = (e) => {
@@ -101,12 +95,19 @@ export function LearningCompanion() {
       sender: "ai",
       type: "feedback",
     }
-    setMessages((prev) => [...prev, feedbackMessage])
+
+    if (mode === "hint") {
+      setHintMessages((prev) => [...prev, feedbackMessage])
+    } else {
+      setExplanationMessages((prev) => [...prev, feedbackMessage])
+    }
   }
+
+  const currentMessages = mode === "hint" ? hintMessages : explanationMessages
 
   return (
     <div className="flex flex-col w-full max-w-4xl mx-auto h-[calc(100vh-2rem)]">
-      {/* ヘッダー部分（固定） */}
+      {/* ヘッダー */}
       <div className="flex-none">
         <Tabs defaultValue="hint" className="w-full" onValueChange={(value) => setMode(value)}>
           <TabsList className="grid w-full grid-cols-2 bg-amber-100">
@@ -138,10 +139,10 @@ export function LearningCompanion() {
         </Tabs>
       </div>
 
-      {/* チャット内容部分（スクロール可能） */}
+      {/* チャット表示 */}
       <div className="flex-grow overflow-y-auto p-4 space-y-4 my-4">
-        {messages.map((message) => (
-          <div key={message.id} className={cn("flex", message.sender === "user" ? "justify-end" : "justify-start")}>
+        {currentMessages.map((message, index) => (
+          <div key={message.id || index} className={cn("flex", message.sender === "user" ? "justify-end" : "justify-start")}>
             <div
               className={cn(
                 "max-w-[80%] rounded-lg p-3",
@@ -170,7 +171,7 @@ export function LearningCompanion() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* チャット入力部分（固定） */}
+      {/* 入力欄 */}
       <div className="flex-none p-4 bg-white border-t border-amber-200">
         <div className="flex gap-2">
           <Input

@@ -41,14 +41,14 @@ def read_root():
 
 # --- その他、アプリケーション全体の設定やミドルウェアなどをここに追加 ---
 # 例: CORS設定
-# from fastapi.middleware.cors import CORSMiddleware
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"], # 本番環境では適切なオリジンを指定してください
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ------------------------------------------------------------------
 
 # 注意: この main.py ファイル自体を直接実行することは通常ありません
