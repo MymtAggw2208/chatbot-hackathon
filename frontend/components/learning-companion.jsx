@@ -13,7 +13,7 @@ export function LearningCompanion() {
   const [hintMessages, setHintMessages] = useState([
     {
       id: "welcome-hint",
-      content: "こんにちは！ヒントが欲しければ、何でも聞いてね！",
+      content: "こんにちは、何でも聞いてね！ヒントを教えてあげるよ！",
       sender: "ai",
       type: "feedback",
     },
@@ -111,11 +111,11 @@ export function LearningCompanion() {
       <div className="flex-none">
         <Tabs defaultValue="hint" className="w-full" onValueChange={(value) => setMode(value)}>
           <TabsList className="grid w-full grid-cols-2 bg-amber-100">
-            <TabsTrigger value="hint" className="data-[state=active]:bg-orange-200">
+            <TabsTrigger value="hint" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
               <Lightbulb className="mr-2 h-4 w-4" />
               ヒントモード
             </TabsTrigger>
-            <TabsTrigger value="explanation" className="data-[state=active]:bg-orange-200">
+            <TabsTrigger value="explanation" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
               <MessageCircle className="mr-2 h-4 w-4" />
               説明モード
             </TabsTrigger>
@@ -124,7 +124,8 @@ export function LearningCompanion() {
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
                 <p>
-                  ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを提供します。自分で考えて答えを見つけましょう！
+                   ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
+                  ラーニーちゃんと一緒に考えて答えを見つけよう！
                 </p>
               </CardContent>
             </Card>
@@ -132,7 +133,8 @@ export function LearningCompanion() {
           <TabsContent value="explanation" className="mt-2">
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
-                <p>説明モードでは、質問に対してあなたの考えを説明してもらいます。説明することで理解が深まります！</p>
+                  <p>説明モードでは、質問に対してあなたの考えを説明してもらいます。
+                  ラーニーちゃんに説明して、理解を深めよう！</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -155,7 +157,7 @@ export function LearningCompanion() {
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
                   <Avatar className="h-6 w-6 mr-2">
-                    <div className="bg-amber-300 h-full w-full flex items-center justify-center">AI</div>
+                      <img src="/path/to/default.svg" alt="AI Icon" className="h-full w-full object-cover" />
                   </Avatar>
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}
@@ -178,13 +180,13 @@ export function LearningCompanion() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="質問を入力してください..."
+            placeholder="ラーニーちゃんに質問してみよう！"
             className="flex-1"
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isThinking}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="rounded-full bg-orange-500 hover:bg-orange-600"
           >
             <Send className="h-4 w-4" />
           </Button>
@@ -192,7 +194,7 @@ export function LearningCompanion() {
             variant="outline"
             onClick={handleFeedback}
             title="答えが分かったらクリック"
-            className="border-orange-300 text-orange-700 hover:bg-orange-100"
+            className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100"
           >
             <ThumbsUp className="h-4 w-4" />
           </Button>
