@@ -157,8 +157,8 @@ export function LearningCompanion() {
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
                   <Avatar className="h-6 w-6 mr-2">
-                    import defaultIcon from 'frontend\public\default.svg';
-                    <img src={defaultIcon} alt="AI Icon" className="h-full w-full object-cover" />
+                    import defaultIcon from '@/public/default.svg';
+                     <img src={defaultIcon} alt="AI Icon" className="h-full w-full object-cover" />
                   </Avatar>
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}
