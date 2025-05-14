@@ -110,7 +110,7 @@ export function LearningCompanion() {
       {/* ヘッダー */}
       <div className="flex-none">
         <Tabs defaultValue="hint" className="w-full" onValueChange={(value) => setMode(value)}>
-          <TabsList className="grid w-full grid-cols-2 bg-amber-100">
+          <TabsList className="grid w-full grid-cols-2 bg-amber-100 h-8">
             <TabsTrigger value="hint" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
               <Lightbulb className="mr-2 h-4 w-4" />
               ヒントモード
@@ -123,9 +123,9 @@ export function LearningCompanion() {
           <TabsContent value="hint" className="mt-2">
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
-                <p>
+                <p className="whitespace-pre-line text-center">
                    ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
-                  ラーニーちゃんと一緒に考えて答えを見つけよう！
+                  <br />ラーニーちゃんと一緒に考えて答えを見つけよう！
                 </p>
               </CardContent>
             </Card>
@@ -133,8 +133,8 @@ export function LearningCompanion() {
           <TabsContent value="explanation" className="mt-2">
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
-                  <p>説明モードでは、質問に対してあなたの考えを説明してもらいます。
-                  ラーニーちゃんに説明して、理解を深めよう！</p>
+                <p className="whitespace-pre-line text-center">説明モードでは、質問に対してあなたの考えを説明してもらいます。
+                  <br />ラーニーちゃんに説明して、理解を深めよう！</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -148,7 +148,7 @@ export function LearningCompanion() {
             <div
               className={cn(
                 "max-w-[80%] rounded-lg p-3",
-                message.sender === "user" ? "bg-orange-500 text-white" : "bg-gray-100",
+                message.sender === "user" ? "bg-orange-500 text-black" : "bg-gray-100",
                 message.type === "hint" && "bg-amber-100",
                 message.type === "explanation" && "bg-yellow-100",
                 message.type === "feedback" && "bg-orange-100",
@@ -157,7 +157,8 @@ export function LearningCompanion() {
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
                   <Avatar className="h-6 w-6 mr-2">
-                      <img src="/path/to/default.svg" alt="AI Icon" className="h-full w-full object-cover" />
+                    import defaultIcon from '@/public/default.svg';
+                     <img src={defaultIcon} alt="AI Icon" className="h-full w-full object-cover" />
                   </Avatar>
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}
@@ -188,7 +189,7 @@ export function LearningCompanion() {
             disabled={!input.trim() || isThinking}
             className="rounded-full bg-orange-500 hover:bg-orange-600"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-6 w-6" />
           </Button>
           <Button
             variant="outline"
@@ -196,7 +197,7 @@ export function LearningCompanion() {
             title="答えが分かったらクリック"
             className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100"
           >
-            <ThumbsUp className="h-4 w-4" />
+            <ThumbsUp className="h-6 w-6" />
           </Button>
         </div>
       </div>
