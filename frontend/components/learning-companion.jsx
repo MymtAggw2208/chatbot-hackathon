@@ -29,6 +29,8 @@ export function LearningCompanion() {
   const [input, setInput] = useState("")
   const [mode, setMode] = useState("hint")
   const [isThinking, setIsThinking] = useState(false)
+  const [hintConversationId, setHintConversationId] = useState(null)
+  const [explanationConversationId, setExplanationConversationId] = useState(null)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function LearningCompanion() {
   }
 
   const handleSend = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || isThinking) return  // ← 二重送信防止
 
     const userMessage = {
       id: Date.now().toString(),
@@ -53,10 +55,17 @@ export function LearningCompanion() {
     const setTargetMessages = isHint ? setHintMessages : setExplanationMessages
     const getTargetMessages = isHint ? hintMessages : explanationMessages
     const endpoint = isHint ? "/chat/thinking" : "/chat/answer"
+    const conversationId = isHint ? hintConversationId : explanationConversationId
 
     setTargetMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsThinking(true)
+
+    const requestBody = {
+      question: input,
+      history: buildHistory(getTargetMessages),
+      conversation_id: conversationId,
+    }
 
     try {
       const res = await fetch(`http://localhost:8000${endpoint}`, {
@@ -64,16 +73,29 @@ export function LearningCompanion() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question: input, history: [] }),
+        body: JSON.stringify(requestBody),
       })
+
+      if (!res.ok) throw new Error(`API request failed with status ${res.status}`)
+
       const data = await res.json()
+
       const aiMessage = {
         id: Date.now().toString(),
         content: data.response,
         sender: "ai",
-        type: "feedback",
+        type: mode,
       }
+
       setTargetMessages((prev) => [...prev, aiMessage])
+
+      if (isHint && !hintConversationId && data.conversation_id) {
+        setHintConversationId(data.conversation_id)
+      }
+      if (!isHint && !explanationConversationId && data.conversation_id) {
+        setExplanationConversationId(data.conversation_id)
+      }
+
     } catch (error) {
       console.error("Error fetching AI response:", error)
     } finally {
@@ -81,8 +103,17 @@ export function LearningCompanion() {
     }
   }
 
+  const buildHistory = (messages) => {
+    return messages
+      .filter((msg) => msg.type !== "feedback")
+      .map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.content,
+      }))
+  }
+
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isThinking) {
       e.preventDefault()
       handleSend()
     }
@@ -124,7 +155,7 @@ export function LearningCompanion() {
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
                 <p className="whitespace-pre-line text-center">
-                   ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
+                  ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
                   <br />ラーニーちゃんと一緒に考えて答えを見つけよう！
                 </p>
               </CardContent>
@@ -156,10 +187,7 @@ export function LearningCompanion() {
             >
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
-                  <Avatar className="h-6 w-6 mr-2">
-                    import defaultIcon from '@/public/default.svg';
-                     <img src={defaultIcon} alt="AI Icon" className="h-full w-full object-cover" />
-                  </Avatar>
+                  <Avatar className="h-6 w-6 mr-2" />
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}
                     {message.type === "explanation" && "説明を聞かせて"}
@@ -183,6 +211,7 @@ export function LearningCompanion() {
             onKeyDown={handleKeyDown}
             placeholder="ラーニーちゃんに質問してみよう！"
             className="flex-1"
+            disabled={isThinking}
           />
           <Button
             onClick={handleSend}
