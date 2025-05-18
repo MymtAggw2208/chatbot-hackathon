@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Lightbulb, MessageCircle, Send, ThumbsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -110,7 +110,7 @@ export function LearningCompanion() {
       {/* ヘッダー */}
       <div className="flex-none">
         <Tabs defaultValue="hint" className="w-full" onValueChange={(value) => setMode(value)}>
-          <TabsList className="grid w-full grid-cols-2 bg-amber-100 h-8">
+          <TabsList className="grid w-full grid-cols-2 bg-amber-100 h-[calc(100vh-2rem)">
             <TabsTrigger value="hint" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
               <Lightbulb className="mr-2 h-4 w-4" />
               ヒントモード
@@ -118,12 +118,12 @@ export function LearningCompanion() {
             <TabsTrigger value="explanation" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
               <MessageCircle className="mr-2 h-4 w-4" />
               説明モード
-            </TabsTrigger>
+            </TabsTrigger>  
           </TabsList>
           <TabsContent value="hint" className="mt-2">
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
-                <p className="whitespace-pre-line text-center">
+                <p className="whitespace-pre-line text-left">
                    ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
                   <br />ラーニーちゃんと一緒に考えて答えを見つけよう！
                 </p>
@@ -133,7 +133,7 @@ export function LearningCompanion() {
           <TabsContent value="explanation" className="mt-2">
             <Card className="border-amber-200">
               <CardContent className="pt-4 bg-amber-50">
-                <p className="whitespace-pre-line text-center">説明モードでは、質問に対してあなたの考えを説明してもらいます。
+                <p className="whitespace-pre-line text-left">説明モードでは、質問に対してあなたの考えを説明してもらいます。
                   <br />ラーニーちゃんに説明して、理解を深めよう！</p>
               </CardContent>
             </Card>
@@ -157,8 +157,8 @@ export function LearningCompanion() {
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
                   <Avatar className="h-6 w-6 mr-2">
-                    import defaultIcon from '@/public/default.svg';
-                     <img src={defaultIcon} alt="AI Icon" className="h-full w-full object-cover" />
+                    <AvatarImage src="/default.png" alt="AI Icon" />
+                    <AvatarFallback>AI</AvatarFallback>
                   </Avatar>
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}

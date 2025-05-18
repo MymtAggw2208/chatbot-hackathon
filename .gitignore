@@ -22,3 +22,23 @@ node_modules/
 npm-debug.log*
 
 frontend/.next/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+.DS_Store
