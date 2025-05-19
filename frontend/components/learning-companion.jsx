@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Lightbulb, MessageCircle, Send, ThumbsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
 
 export function LearningCompanion() {
   const [hintMessages, setHintMessages] = useState([
@@ -32,13 +33,31 @@ export function LearningCompanion() {
   const [hintConversationId, setHintConversationId] = useState(null)
   const [explanationConversationId, setExplanationConversationId] = useState(null)
   const messagesEndRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     scrollToBottom()
   }, [hintMessages, explanationMessages, mode])
 
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [])
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    textarea.style.height = "auto"
+    const scrollHeight = textarea.scrollHeight
+
+    const lineHeight = 24
+    const maxHeight = lineHeight * 4 + 16
+
+    textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
   const handleSend = async () => {
@@ -119,6 +138,11 @@ export function LearningCompanion() {
     }
   }
 
+  const handleInputChange = (e) => {
+    setInput(e.target.value)
+    adjustTextareaHeight()
+  }
+
   const handleFeedback = () => {
     const feedbackMessage = {
       id: Date.now().toString(),
@@ -137,24 +161,30 @@ export function LearningCompanion() {
   const currentMessages = mode === "hint" ? hintMessages : explanationMessages
 
   return (
-    <div className="flex flex-col w-full max-w-4xl mx-auto h-[calc(100vh-2rem)]">
-      {/* ヘッダー */}
-      <div className="flex-none">
+    <div className="flex flex-col w-full max-w-5xl mx-auto h-[calc(100vh-2rem)] text-lg">
+      {/* ヘッダー - 固定表示 */}
+      <div className="sticky top-0 z-10 bg-white">
         <Tabs defaultValue="hint" className="w-full" onValueChange={(value) => setMode(value)}>
-          <TabsList className="grid w-full grid-cols-2 bg-amber-100 h-8">
-            <TabsTrigger value="hint" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
-              <Lightbulb className="mr-2 h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-2 p-0 h-auto">
+            <TabsTrigger 
+              value="hint" 
+              className="bg-orange-200 data-[state=active]:bg-orange-300 flex justify-center items-center py-4 h-full rounded-none"
+            >
+              <Lightbulb className="mr-3 h-10 w-10" />
               ヒントモード
             </TabsTrigger>
-            <TabsTrigger value="explanation" className="data-[state=active]:bg-orange-200 flex justify-center items-center">
-              <MessageCircle className="mr-2 h-4 w-4" />
+            <TabsTrigger 
+              value="explanation" 
+              className="bg-orange-200 data-[state=active]:bg-orange-300 flex justify-center items-center py-4 h-full rounded-none"
+            >
+              <MessageCircle className="mr-3 h-10 w-10" />
               説明モード
             </TabsTrigger>
           </TabsList>
           <TabsContent value="hint" className="mt-2">
             <Card className="border-amber-200">
-              <CardContent className="pt-4 bg-amber-50">
-                <p className="whitespace-pre-line text-center">
+              <CardContent className="p-4 bg-amber-50">
+                <p className="whitespace-pre-line text-left">
                   ヒントモードでは、答えをそのまま教えるのではなく、考え方のヒントを教えてくれます。
                   <br />ラーニーちゃんと一緒に考えて答えを見つけよう！
                 </p>
@@ -163,17 +193,19 @@ export function LearningCompanion() {
           </TabsContent>
           <TabsContent value="explanation" className="mt-2">
             <Card className="border-amber-200">
-              <CardContent className="pt-4 bg-amber-50">
-                <p className="whitespace-pre-line text-center">説明モードでは、質問に対してあなたの考えを説明してもらいます。
-                  <br />ラーニーちゃんに説明して、理解を深めよう！</p>
+              <CardContent className="p-4 bg-amber-50">
+                <p className="whitespace-pre-line text-left">
+                  説明モードでは、質問に対してあなたの考えを説明してもらいます。
+                  <br />ラーニーちゃんに説明して、理解を深めよう！
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* チャット表示 */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-4 my-4">
+      {/* チャット表示 - スクロール可能領域 */}
+      <div className="flex-grow overflow-y-auto p-4 space-y-4">
         {currentMessages.map((message, index) => (
           <div key={message.id || index} className={cn("flex", message.sender === "user" ? "justify-end" : "justify-start")}>
             <div
@@ -187,7 +219,10 @@ export function LearningCompanion() {
             >
               {message.sender === "ai" && (
                 <div className="flex items-center mb-1">
-                  <Avatar className="h-6 w-6 mr-2" />
+                  <Avatar className="h-12 w-12 mr-3">
+                    <AvatarImage src="/default.png" alt="AI Icon" />
+                    <AvatarFallback>AI</AvatarFallback>
+                  </Avatar>
                   <span className="text-xs font-medium">
                     {message.type === "hint" && "ヒント"}
                     {message.type === "explanation" && "説明を聞かせて"}
@@ -202,29 +237,36 @@ export function LearningCompanion() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 入力欄 */}
-      <div className="flex-none p-4 bg-white border-t border-amber-200">
-        <div className="flex gap-2">
-          <Input
+      {/* 入力欄 - 固定表示 */}
+      <div className="sticky bottom-0 z-10 bg-white border-t border-amber-200">
+        <div className="flex gap-2 p-4">
+          <Textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.ctrlKey) { // Enterとctrlの組み合わせで送信
+                e.preventDefault()
+                handleSend()
+              }
+            }}
             placeholder="ラーニーちゃんに質問してみよう！"
-            className="flex-1"
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2 px-3"
+            rows={1}
             disabled={isThinking}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isThinking}
-            className="rounded-full bg-orange-500 hover:bg-orange-600"
+            className="rounded-full bg-orange-500 hover:bg-orange-600 p-3 self-end"
           >
             <Send className="h-6 w-6" />
           </Button>
           <Button
-            variant="outline"
+            variant="outline" 
             onClick={handleFeedback}
             title="答えが分かったらクリック"
-            className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100"
+            className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100 self-end"
           >
             <ThumbsUp className="h-6 w-6" />
           </Button>

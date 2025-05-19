@@ -1,4 +1,4 @@
-// File: /Users/mizuki/Documents/Project/chatbot-hackathon/chatbot-hackathon/frontend/app/page.jsx
+// File: C:\Users\misak\Documents\GitHub\fork_chatbot-hackathon\frontend\app\page.jsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
