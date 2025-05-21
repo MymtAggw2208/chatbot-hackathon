@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.chat_models import ChatRequest, ChatResponse
 # サービス層のモジュールをインポート
-from app.services import thinking_chat_service, answer_chat_service, understanding_evaluation_chat_service
+from app.services import thinking_chat_service, answer_chat_service, understanding_evaluation_chat_service, question_chat_service
 # database.py から get_db 依存性注入ヘルパーをインポート
 from app.db.database import get_db
 
@@ -88,7 +88,7 @@ async def chat_understanding_evaluation_endpoint(request: ChatRequest, db: Sessi
     - **history**: 過去の会話履歴 (ChatMessageオブジェクトのリスト)
     - **conversation_id**: 会話の識別子 (新規会話の場合はNone)
 
-    AIからの応答として、答えそのものではなく、考え方や調べ方の手順を返します。
+    AIからの応答として、学習内容の理解度を返します。
     """
     print(f"API: Received request for /chat/understanding_evaluation - Conversation ID: {request.conversation_id}, Question: {request.question[:50]}...")
     try:
@@ -105,6 +105,39 @@ async def chat_understanding_evaluation_endpoint(request: ChatRequest, db: Sessi
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal Server Error processing understanding evaluation mode request"
+        )
+    
+
+@router.post("/question",
+            response_model=ChatResponse, # 返すレスポンスの形式を指定 (自動で検証・整形)
+            status_code=status.HTTP_200_OK, # 成功時のステータスコード
+            summary="理解度チェックの出題" # 自動生成ドキュメント用
+            )
+async def chat_question_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    """
+    **理解度確認出題**のリクエストを受け付けます。
+
+    - **question**: 対象の問題（学習した内容）
+    - **history**: 過去の会話履歴 (ChatMessageオブジェクトのリスト)
+    - **conversation_id**: 会話の識別子 (新規会話の場合はNone)
+
+    AIからの応答として、学習内容の理解度を返します。
+    """
+    print(f"API: Received request for /chat/question - Conversation ID: {request.conversation_id}, Question: {request.question[:50]}...")
+    try:
+        # Service Layer の関数を呼び出し、実際のビジネスロジックを実行
+        response = await question_chat_service.process_question_request(db, request)
+
+    # Service Layer から返された結果をそのまま返す
+        return response
+
+    except Exception as e:
+    # Service Layer などで発生した例外をキャッチし、HTTPエラーとして返す
+        print(f"API Error in /chat/question: {e}")
+        # 本番環境では詳細なエラーメッセージをそのまま返さない方が良い場合が多い
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error processing question request"
         )
 
 # --- 必要に応じて他のチャット関連APIエンドポイントを追加 ---
