@@ -22,7 +22,7 @@ export function LearningCompanion() {
   const [explanationMessages, setExplanationMessages] = useState([
     {
       id: "welcome-expl",
-      content: "こんにちは！説明が必要なら、質問してね！",
+      content: "こんにちは！この前学習したこと覚えているかな？\n今からどれくらい覚えているかラーニーと一緒にチェックしてみよう！",
       sender: "ai",
       type: "feedback",
     },
@@ -73,7 +73,7 @@ export function LearningCompanion() {
     const isHint = mode === "hint"
     const setTargetMessages = isHint ? setHintMessages : setExplanationMessages
     const getTargetMessages = isHint ? hintMessages : explanationMessages
-    const endpoint = isHint ? "/chat/thinking" : "/chat/answer"
+    const endpoint = isHint ? "/chat/thinking" : "/chat/understanding_evaluation"
     const conversationId = isHint ? hintConversationId : explanationConversationId
 
     setTargetMessages((prev) => [...prev, userMessage])
@@ -176,9 +176,10 @@ export function LearningCompanion() {
             <TabsTrigger 
               value="explanation" 
               className="bg-orange-200 data-[state=active]:bg-orange-300 flex justify-center items-center py-4 h-full rounded-none"
+              onClick={() => console.log('タブがクリックされました')}
             >
               <MessageCircle className="mr-3 h-10 w-10" />
-              説明モード
+              理解度チェックモード
             </TabsTrigger>
           </TabsList>
           <TabsContent value="hint" className="mt-2">
@@ -195,8 +196,8 @@ export function LearningCompanion() {
             <Card className="border-amber-200">
               <CardContent className="p-4 bg-amber-50">
                 <p className="whitespace-pre-line text-left">
-                  説明モードでは、質問に対してあなたの考えを説明してもらいます。
-                  <br />ラーニーちゃんに説明して、理解を深めよう！
+                  理解度チェックモードでは、ヒントモードで学習した内容をどれくらい分かっているかチェックできます。
+                  <br />ラーニーちゃんにどうやって答えが出たのか説明して、理解度をチェックして更に理解を深めよう！
                 </p>
               </CardContent>
             </Card>
