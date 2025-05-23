@@ -246,7 +246,7 @@ export function LearningCompanion() {
             value={input}
             onChange={handleInputChange}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && e.ctrlKey) { // Enterとctrlの組み合わせで送信
+              if (e.key === "Enter" && e.ctrlKey) {
                 e.preventDefault()
                 handleSend()
               }
@@ -254,12 +254,11 @@ export function LearningCompanion() {
             placeholder="ラーニーちゃんに質問してみよう！"
             className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2 px-3"
             rows={1}
-            disabled={isThinking}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isThinking}
-            className="rounded-full bg-orange-500 hover:bg-orange-600 p-3 self-end"
+            className="rounded-full bg-orange-500 hover:bg-orange-600 p-3 self-end flex items-center justify-center"
           >
             <Send className="h-6 w-6" />
           </Button>
@@ -267,7 +266,7 @@ export function LearningCompanion() {
             variant="outline" 
             onClick={handleFeedback}
             title="答えが分かったらクリック"
-            className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100 self-end"
+            className="rounded-full border-orange-300 text-orange-700 hover:bg-orange-100 self-end flex items-center justify-center"
           >
             <ThumbsUp className="h-6 w-6" />
           </Button>
